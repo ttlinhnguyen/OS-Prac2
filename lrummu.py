@@ -28,6 +28,7 @@ class LruMMU(MMU):
         self.access_memory(page_number, True)
 
     def access_memory(self, page_number, write):
+        # Page is already in memory
         if page_number in self.page_table:
             # Move page to the end of the memory - most recently used
             self.memory.remove(page_number)
@@ -49,13 +50,16 @@ class LruMMU(MMU):
         self.page_table[page_number] = Page(page_number, write)
         self.memory.append(page_number)
         logger.debug(f"Load new page {page_number}")
-    
+
     def evict_page(self):
         evict_page_number = self.memory.pop(0)  # Least recently used
         evict_page = self.page_table[evict_page_number]
+
+        # Write page to disk if page is marked as dirty/written
         if evict_page.dirty:
             self.num_disk_writes += 1
             logger.debug(f"Write page {evict_page_number} to disk")
+
         del self.page_table[evict_page_number]
         logger.debug(f"Evict page {evict_page_number}")
 

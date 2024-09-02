@@ -29,10 +29,11 @@ class ClockMMU(MMU):
         self.access_memory(page_number, True)
 
     def access_memory(self, page_number, write):
+        # Page is already in memory
         if page_number in self.page_table:
             logger.debug(f"Access {page_number}\n")
             page = self.page_table[page_number]
-            page.use_bit = True # recently used
+            page.use_bit = True  # recently used
             if write:
                 page.dirty = True
             return
@@ -55,6 +56,7 @@ class ClockMMU(MMU):
 
     def evict_page(self):
         while True:
+            # Get the page number that clock hand is pointing at
             page_number = self.memory[self.clock_hand]
             if page_number is None:
                 break
@@ -62,11 +64,13 @@ class ClockMMU(MMU):
             page = self.page_table[page_number]
             if page.use_bit:
                 logger.debug(f"Clear use bit for page {page_number}")
-                page.use_bit = False # Clear use bit
-            else: # evict not recently used page
+                page.use_bit = False  # Clear use bit
+            else:  # evict not recently used page
+                # Write page to disk if the page is marked as dirty/written
                 if page.dirty:
                     self.num_disk_writes += 1
                     logger.debug(f"Write page {page_number} to disk")
+
                 del self.page_table[page_number]
                 logger.debug(f"Evict page {page_number}")
                 break

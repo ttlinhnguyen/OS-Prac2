@@ -1,43 +1,54 @@
-import random
 import logging
+import random
 from mmu import MMU
+from page import Page
 
 logger = logging.getLogger(__name__)
+
 
 class RandMMU(MMU):
     def __init__(self, frames):
         self.num_disk_reads = 0
         self.num_disk_writes = 0
         self.num_page_faults = 0
+        self.frames = frames
 
-        self.num_frames = frames
-        self.memory = [] # Frame number: Page number
+        self.page_table = {}  # Page number: Page Object
+        self.memory = []  # Page number
 
     def set_debug(self):
-        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
+        logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.DEBUG)
 
     def reset_debug(self):
-        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
+        logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
 
     def read_memory(self, page_number):
-        self.num_disk_reads += 1
-
-        if page_number not in self.memory:
-            logger.debug(f"Read: {page_number} - MISS")
-            self.num_page_faults += 1
-            self.add_page_to_memory(page_number)
-        else:
-            logger.debug(f"Read: {page_number} - HIT")
+        self.access_memory(page_number, False)
 
     def write_memory(self, page_number):
-        self.num_disk_writes += 1
+        self.access_memory(page_number, True)
 
-        if page_number not in self.memory:
-            logger.debug(f"Write: {page_number} - MISS")
-            self.num_page_faults += 1
-            self.add_page_to_memory(page_number)
+    def access_memory(self, page_number, write):
+        # Do nothing if page is in the memory
+        if page_number in self.page_table:
+            return
+
+        # Page fault
+        logger.debug(f"Page fault at page {page_number}")
+        self.num_page_faults += 1
+        self.num_disk_reads += 1
+
+        # Evict a page
+        rand_number = random.randint(0, self.frames - 1)
+        if len(self.memory) >= self.frames:
+            self.memory.pop(rand_number)
+            self.memory[rand_number] = page_number
         else:
-            logger.debug(f"Write: {page_number} - HIT")
+            self.memory.append(page_number)
+
+        # Load new page into memory
+        self.page_table[page_number] = Page(page_number, write)
+        logger.debug(f"Load new page {page_number}")
 
     def get_total_disk_reads(self):
         return self.num_disk_reads
@@ -47,14 +58,3 @@ class RandMMU(MMU):
 
     def get_total_page_faults(self):
         return self.num_page_faults
-    
-    def add_page_to_memory(self, page_number):
-        """ Handle page fault """
-        if len(self.memory) < self.num_frames:
-            self.memory.append(page_number)
-            return
-        
-        random_number = random.randint(0, self.num_frames - 1)
-        page_number_to_replace = self.memory[random_number]
-        self.memory[random_number] = page_number
-        logger.debug(f"Replace {page_number_to_replace} with {page_number}")
