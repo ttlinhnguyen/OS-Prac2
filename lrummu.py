@@ -41,20 +41,23 @@ class LruMMU(MMU):
         self.num_page_faults += 1
         self.num_disk_reads += 1
 
-        # Evict least recently used frame
+        # Evict a page
         if len(self.memory) >= self.frames:
-            evict_page_number = self.memory.pop(0)  # Least recently used
-            evict_page = self.page_table[evict_page_number]
-            if evict_page.dirty:
-                self.num_disk_writes += 1
-                logger.debug(f"Write page {evict_page_number} to disk")
-            del self.page_table[evict_page_number]
-            logger.debug(f"Evict page {evict_page_number}")
+            self.evict_page()
 
         # Load new page into memory
         self.page_table[page_number] = Page(page_number, write)
         self.memory.append(page_number)
         logger.debug(f"Load new page {page_number}")
+    
+    def evict_page(self):
+        evict_page_number = self.memory.pop(0)  # Least recently used
+        evict_page = self.page_table[evict_page_number]
+        if evict_page.dirty:
+            self.num_disk_writes += 1
+            logger.debug(f"Write page {evict_page_number} to disk")
+        del self.page_table[evict_page_number]
+        logger.debug(f"Evict page {evict_page_number}")
 
     def get_total_disk_reads(self):
         return self.num_disk_reads
