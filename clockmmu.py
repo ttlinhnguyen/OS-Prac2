@@ -47,7 +47,9 @@ class ClockMMU(MMU):
         self.evict_page()
 
         # Load new page into memory
-        self.page_table[page_number] = Page(page_number, write)
+        page = Page(page_number, write)
+        page.use_bit = True
+        self.page_table[page_number] = page
         # Replace the evicted page with the current one
         self.memory[self.clock_hand] = page_number
         self.clock_hand = (self.clock_hand + 1) % self.frames
@@ -74,6 +76,7 @@ class ClockMMU(MMU):
                 del self.page_table[page_number]
                 logger.debug(f"Evict page {page_number}")
                 break
+            self.clock_hand = (self.clock_hand + 1) % self.frames
 
     def get_total_disk_reads(self):
         return self.num_disk_reads

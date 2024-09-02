@@ -39,7 +39,7 @@ def main():
         mmu = RandMMU(frames)
     elif replacement_mode == "lru":
         mmu = LruMMU(frames)
-    elif replacement_mode == "esc":
+    elif replacement_mode == "clock":
         mmu = ClockMMU(frames)
     else:
         print("Invalid replacement mode. Valid options are [rand, lru, esc]")
@@ -81,6 +81,7 @@ def main():
 
             no_events += 1
 
+    # TODO: Print results
     print(f"total memory frames: {frames}")
     print(f"events in trace: {no_events}")
     print(f"total disk reads: {mmu.get_total_disk_reads()}")
